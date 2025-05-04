@@ -1,0 +1,310 @@
+import json
+import os
+from datetime import datetime
+
+class TextTaskManager:
+    def __init__(self):
+        # Data structure
+        self.tasks = []
+        self.completed_tasks = []
+        self.incomplete_tasks = []
+        
+        # Data file
+        self.data_file = "task_data.json"
+        self.load_data()
+        
+    def display_menu(self):
+        """Display the main menu"""
+        print("\n" + "=" * 50)
+        print(f"DAILY TASK MANAGER - {datetime.now().strftime('%A, %B %d, %Y')}")
+        print("=" * 50)
+        
+        # Show current tasks
+        print("\nTODAY'S TASKS:")
+        if not self.tasks:
+            print("  [No tasks added yet]")
+        else:
+            for i, task in enumerate(self.tasks, 1):
+                print(f"  {i}. {task}")
+        
+        # Show completed tasks
+        print("\nCOMPLETED TASKS:")
+        if not self.completed_tasks:
+            print("  [No completed tasks]")
+        else:
+            for i, task in enumerate(self.completed_tasks, 1):
+                print(f"  {i}. {task}")
+        
+        # Show incomplete tasks
+        print("\nINCOMPLETE TASKS:")
+        if not self.incomplete_tasks:
+            print("  [No incomplete tasks]")
+        else:
+            for i, task in enumerate(self.incomplete_tasks, 1):
+                print(f"  {i}. {task}")
+        
+        # Menu options
+        print("\nMENU OPTIONS:")
+        print("  1. Add Task")
+        print("  2. Mark Task as Complete")
+        print("  3. Mark Task as Incomplete")
+        print("  4. Delete Task")
+        print("  5. Save")
+        print("  6. Start New Day")
+        print("  7. View Archives")
+        print("  0. Exit")
+        
+        # Get user choice
+        choice = input("\nEnter your choice (0-6): ")
+        return choice
+    
+    def add_task(self):
+        """Add a new task to the checklist"""
+        task = input("\nEnter task description: ")
+        if task and task.strip():
+            self.tasks.append(task.strip())
+            print(f"\nTask '{task.strip()}' added!")
+    
+    def mark_complete(self):
+        """Mark a task as complete"""
+        if not self.tasks:
+            print("\nNo tasks available to mark as complete.")
+            return
+            
+        print("\nSelect task to mark as complete:")
+        for i, task in enumerate(self.tasks, 1):
+            print(f"  {i}. {task}")
+            
+        try:
+            choice = int(input("\nEnter task number: "))
+            if 1 <= choice <= len(self.tasks):
+                task = self.tasks[choice-1]
+                self.completed_tasks.append(task)
+                self.tasks.pop(choice-1)
+                print(f"\nTask '{task}' marked as complete!")
+            else:
+                print("\nInvalid task number.")
+        except ValueError:
+            print("\nPlease enter a valid number.")
+    
+    def mark_incomplete(self):
+        """Mark a task as incomplete"""
+        if not self.tasks:
+            print("\nNo tasks available to mark as incomplete.")
+            return
+            
+        print("\nSelect task to mark as incomplete:")
+        for i, task in enumerate(self.tasks, 1):
+            print(f"  {i}. {task}")
+            
+        try:
+            choice = int(input("\nEnter task number: "))
+            if 1 <= choice <= len(self.tasks):
+                task = self.tasks[choice-1]
+                self.incomplete_tasks.append(task)
+                self.tasks.pop(choice-1)
+                print(f"\nTask '{task}' marked as incomplete!")
+            else:
+                print("\nInvalid task number.")
+        except ValueError:
+            print("\nPlease enter a valid number.")
+    
+    def delete_task(self):
+        """Delete a task from the list"""
+        if not self.tasks:
+            print("\nNo tasks available to delete.")
+            return
+            
+        print("\nSelect task to delete:")
+        for i, task in enumerate(self.tasks, 1):
+            print(f"  {i}. {task}")
+            
+        try:
+            choice = int(input("\nEnter task number: "))
+            if 1 <= choice <= len(self.tasks):
+                task = self.tasks.pop(choice-1)
+                print(f"\nTask '{task}' deleted!")
+            else:
+                print("\nInvalid task number.")
+        except ValueError:
+            print("\nPlease enter a valid number.")
+    
+    def save_data(self):
+        """Save all tasks to a JSON file"""
+        data = {
+            "tasks": self.tasks,
+            "completed_tasks": self.completed_tasks,
+            "incomplete_tasks": self.incomplete_tasks,
+            "last_saved": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        with open(self.data_file, "w") as file:
+            json.dump(data, file, indent=4)
+        
+        print("\nTasks saved successfully!")
+    
+    def load_data(self):
+        """Load tasks from the JSON file"""
+        if os.path.exists(self.data_file):
+            try:
+                with open(self.data_file, "r") as file:
+                    data = json.load(file)
+                    
+                self.tasks = data.get("tasks", [])
+                self.completed_tasks = data.get("completed_tasks", [])
+                self.incomplete_tasks = data.get("incomplete_tasks", [])
+                print("\nPrevious tasks loaded!")
+            except:
+                print("\nFailed to load previous data.")
+    
+    def start_new_day(self):
+        """Start a new day by clearing lists and archiving current data"""
+        confirmation = input("\nThis will archive current tasks and start fresh. Continue? (y/n): ")
+        if confirmation.lower() == 'y':
+            # Archive current day
+            self.archive_current_day()
+            
+            # Clear all lists
+            self.tasks = []
+            self.completed_tasks = []
+            self.incomplete_tasks = []
+            
+            self.save_data()
+            print("\nReady for a new day! Add your tasks.")
+    
+    def archive_current_day(self):
+        """Archive the current day's data"""
+        if not (self.tasks or self.completed_tasks or self.incomplete_tasks):
+            return  # Nothing to archive
+            
+        today = datetime.now().strftime("%Y-%m-%d")
+        archive_dir = "task_archives"
+        
+        # Create archives directory if it doesn't exist
+        if not os.path.exists(archive_dir):
+            os.makedirs(archive_dir)
+        
+        # Create archive data
+        archive_data = {
+            "date": today,
+            "tasks": self.tasks,
+            "completed_tasks": self.completed_tasks,
+            "incomplete_tasks": self.incomplete_tasks
+        }
+        
+        # Save archive
+        archive_file = os.path.join(archive_dir, f"tasks_{today}.json")
+        with open(archive_file, "w") as file:
+            json.dump(archive_data, file, indent=4)
+        
+        print(f"\nToday's tasks archived to {archive_file}")
+    
+    def view_archives(self):
+        """View archived tasks"""
+        archive_dir = "task_archives"
+        
+        if not os.path.exists(archive_dir):
+            print("\nNo archives found.")
+            return
+            
+        # Get list of archive files
+        archive_files = [f for f in os.listdir(archive_dir) if f.startswith("tasks_") and f.endswith(".json")]
+        
+        if not archive_files:
+            print("\nNo archives found.")
+            return
+            
+        # Sort files by date (newest first)
+        archive_files.sort(reverse=True)
+        
+        # Show available archives
+        print("\nAVAILABLE ARCHIVES:")
+        for i, file in enumerate(archive_files, 1):
+            date_str = file.replace("tasks_", "").replace(".json", "")
+            print(f"  {i}. {date_str}")
+        
+        # Let user choose which archive to view
+        try:
+            choice = int(input("\nEnter archive number to view (0 to cancel): "))
+            if choice == 0:
+                return
+            elif 1 <= choice <= len(archive_files):
+                self.display_archive(os.path.join(archive_dir, archive_files[choice-1]))
+            else:
+                print("\nInvalid choice.")
+        except ValueError:
+            print("\nPlease enter a valid number.")
+    
+    def display_archive(self, archive_file):
+        """Display the content of an archive file"""
+        try:
+            with open(archive_file, "r") as file:
+                data = json.load(file)
+                
+            date = data.get("date", "Unknown date")
+            tasks = data.get("tasks", [])
+            completed = data.get("completed_tasks", [])
+            incomplete = data.get("incomplete_tasks", [])
+            
+            print("\n" + "=" * 50)
+            print(f"ARCHIVE FOR {date}")
+            print("=" * 50)
+            
+            print("\nREMAINING TASKS:")
+            if not tasks:
+                print("  [No remaining tasks]")
+            else:
+                for i, task in enumerate(tasks, 1):
+                    print(f"  {i}. {task}")
+            
+            print("\nCOMPLETED TASKS:")
+            if not completed:
+                print("  [No completed tasks]")
+            else:
+                for i, task in enumerate(completed, 1):
+                    print(f"  {i}. {task}")
+            
+            print("\nINCOMPLETE TASKS:")
+            if not incomplete:
+                print("  [No incomplete tasks]")
+            else:
+                for i, task in enumerate(incomplete, 1):
+                    print(f"  {i}. {task}")
+                    
+        except Exception as e:
+            print(f"\nError reading archive: {e}")
+    
+    def run(self):
+        """Main loop for the application"""
+        print("\nWelcome to Daily Task Manager!")
+        
+        while True:
+            choice = self.display_menu()
+            
+            if choice == '0':
+                print("\nExiting Daily Task Manager. Goodbye!")
+                break
+            elif choice == '1':
+                self.add_task()
+            elif choice == '2':
+                self.mark_complete()
+            elif choice == '3':
+                self.mark_incomplete()
+            elif choice == '4':
+                self.delete_task()
+            elif choice == '5':
+                self.save_data()
+            elif choice == '6':
+                self.start_new_day()
+            elif choice == '7':
+                self.view_archives()
+            else:
+                print("\nInvalid choice. Please try again.")
+            
+            # Optional: wait for user to press enter before showing menu again
+            input("\nPress Enter to continue...")
+
+
+if __name__ == "__main__":
+    app = TextTaskManager()
+    app.run()
